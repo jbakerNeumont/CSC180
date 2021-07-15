@@ -1,10 +1,10 @@
 import java.io.*;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import java.time.LocalDate;
-import java.util.ArrayList;
+
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 
 public class Main {
@@ -15,23 +15,28 @@ public class Main {
 	
 	public static void createPDF(String strFileName) {
 		try {
-			File outFile = new File(strFileName);
+			File inFile = new File("data\\" + strFileName + ".html");
+			File outFile = new File("data\\" + strFileName + ".pdf");
+			
 			OutputStream os = new FileOutputStream(outFile);
 			PdfRendererBuilder builder = new PdfRendererBuilder();
 			
+			builder.useFastMode();
+			builder.withFile(inFile);
 			builder.toStream(os);
 			builder.run();
 			
+			System.out.println("PDF generated...");
 		} catch (Exception e) {
-			System.out.println(e.toString());
+			e.printStackTrace();
 		}
 	}
 	
 	public static void writeHTML(JSONObject customerRecord) {
 		String strHTMLTop = "<!DOCTYPE html><html><body>\r\n";
         String strHTMLBottom = "</body></html>";
-        String strHTMLCustInfo = String.format("<h3>%s</h3><p>%s %s</p>\r\n<p>%s</p><br>",
-                LocalDate.now(), customerRecord.get("first_name"), customerRecord.get("last_name"), customerRecord.get("ssn"));
+        String strHTMLCustInfo = String.format("<h3>%s</h3><p>%s %s</p>\r\n<p>%s</p>\r\n",
+                LocalDate.now(), "Name: " + customerRecord.get("first_name"), customerRecord.get("last_name"), "SSN: " + customerRecord.get("ssn"));
         String strHTMLTableTradeTop = "<table style=\"width:100%; border:2px solid black;\">\r\n<tr><th>Type</th>"
                 + "<th>Symbol</th><th>Price</th><th>Shares</th><th>Total</th></tr>";
         String strHTMLTableTradeBottom = "</table>\r\n";
@@ -76,21 +81,23 @@ public class Main {
 						+ "<td style=\"border:1px double;\">%s</td>"
 						+ "<td style=\"border:1px double;\">%s</td>"
 						+ "<td style=\"border:1px double;\">%s</td>"
-						+ "<td style=\"border:1px double;\">%s</td></tr>",
-						trade_type, stock_symbol, price_per_share, count_shares, "$" + Math.round(total_trade_value * 100.0) / 100.0);
+						+ "<td style=\"border:1px double;\">$%,.2f</td></tr>",
+						trade_type, stock_symbol, price_per_share, count_shares, Math.round(total_trade_value * 100.0) / 100.0);
 				fw.write(strHTMLRowData);
 			}
 			fw.write(strHTMLTableTradeBottom);
-			strHTMLSummary = String.format("<p>Cash Value: %s</p>\r\n<p>Stock Value:"
-	                + " %s</p>\r\n", "$" + Math.round(cashValue * 100.0) / 100.0, "$" + Math.round(stockValue * 100.0) / 100.0);
+			strHTMLSummary = String.format("<p>Cash Value: $%,.2f</p>\r\n<p>Stock Value:"
+	                + "$%,.2f</p>\r\n", Math.round(cashValue * 100.0) / 100.0, Math.round(stockValue * 100.0) / 100.0);
 			fw.write(strHTMLSummary);
 			fw.write(strHTMLBottom);
 			fw.close();
 			
 			System.out.println("HTML generated...");
 			
+			createPDF(strFileName);
+			
 		} catch (Exception e) {
-			System.out.println(e.toString());
+			e.printStackTrace();
 		}
 	}
 	
@@ -100,8 +107,7 @@ public class Main {
 			Object json = new JSONParser().parse(new FileReader("data\\stocks.json"));
 			JSONArray jsonA = (JSONArray) json;
 			
-			//for(int i = 0; i < jsonA.size(); i++)
-			for(int i = 0; i < 5; i++)
+			for(int i = 0; i < jsonA.size(); i++)
 			{
 				JSONObject customerRecord = (JSONObject) jsonA.get(i);
 				writeHTML(customerRecord);
@@ -111,7 +117,7 @@ public class Main {
 			System.out.println("Succefully read from JSON...");
 			
 		} catch (Exception e) {
-			System.out.println(e.toString());
+			e.printStackTrace();
 		}
 	}
 
